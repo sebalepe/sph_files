@@ -18,8 +18,9 @@ import matplotlib.ticker as ticker
 
 class SnapViewer: #guarda toda la informacion y facilita algunos elementos
     
-    def __init__(self, path=''):
+    def __init__(self, path='', empty=False):
         self.path = path
+        self.empty = empty
         self.keys = ''
         self.header = None
         self.info = None
@@ -31,7 +32,7 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
         self.init()
         
     def init(self): #guarda todos los datos tomando un path a un archivo en binario
-        try:
+        if not self.empty:
             self.header, data, self.info = read(self.path)
             header_keys = f'Header: {list(self.header.keys())}\n\n'
             data_keys = list(data.keys())
@@ -45,7 +46,7 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
                 self.pos.append(ptyp[i]['Coordinates'])
                 self.mass.append(ptyp[i]['Mass'])
                 self.vels.append(ptyp[i]['Velocity'])
-        except:
+        else:
             print('Empty SnapViewer')
     
     ##Usefull Functions
