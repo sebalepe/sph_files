@@ -436,4 +436,7 @@ class SnapEvolution: #para leer multiples snaps
             vmaxs.append(np.max(img2))
         
         return np.mean(vmins), np.mean(vmaxs)
+    
+    def test(self,x):
+        print(x)
         
