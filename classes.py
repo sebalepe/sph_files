@@ -171,6 +171,12 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
                     img[i][j] = minimo         
         return img
     
+    def fix_img(self, img, n=1.23):
+        img1 = np.where(np.isnan(img), n, img)
+        img2 = np.where(img1==-math.inf, n, img1)
+        img3 = np.where(img2==n, np.amin(img2), img2)
+        return img3
+    
     def vfield_plot(self, ax,pos,mass,vel, extent, u, x,y,z, v_cm): #genera plot de streamlines de velocidad
         qv = QuickView(pos, r='infinity', mass=mass, x=x, y=y, z=z, extent=extent, plot=False, logscale=False)
         hsml = qv.get_hsml()
