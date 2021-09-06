@@ -85,7 +85,7 @@ def read_quantity(data_type, n_data):
 
     dummy = np.fromfile(f,'i',1)[0]
     quantity = np.fromfile(f, data_type, n_data)
-    #dummy = np.fromfile(f,'i',1)[0]
+    dummy = np.fromfile(f,'i',1)[0]
     
     return quantity
 

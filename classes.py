@@ -15,6 +15,8 @@ import matplotlib.animation as animation
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import matplotlib.gridspec as gridspec
 import matplotlib.ticker as ticker
+from matplotlib.colors import LinearSegmentedColormap
+import math
 
 class SnapViewer: #guarda toda la informacion y facilita algunos elementos
     
@@ -142,7 +144,27 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
         blend = Blend.Blend(img1, img2)
         return blend
     
+    
     ## Plot Functions
+    
+    def cmap_from_image(self, path='', reverse=False):
+        img = imread(path)
+        colors_from_img = img[:, 0, :]
+        if reverse:
+            colors_from_img = colors_from_img[::-1]
+        my_cmap = LinearSegmentedColormap.from_list('my_cmap', colors_from_img, N=280)
+        return my_cmap
+    
+    def cmap_from_list(self, colors, bins=1000 ,name='my_cmap'):
+        cmap = LinearSegmentedColormap.from_list(name, colors, N=bins)
+        return cmap
+    
+    def fix_img(self, img, n=1.23):
+        img1 = np.where(np.isnan(img), n, img)
+        img2 = np.where(img1==-math.inf, n, img1)
+        img3 = np.where(img2==n, np.amin(img2), img2)
+        return img3
+    
     def vfield_plot(self, ax,pos,mass,vel, extent, u, x,y,z, v_cm): #genera plot de streamlines de velocidad
         qv = QuickView(pos, r='infinity', mass=mass, x=x, y=y, z=z, extent=extent, plot=False, logscale=False)
         hsml = qv.get_hsml()
@@ -408,7 +430,4 @@ class SnapEvolution: #para leer multiples snaps
             vmaxs.append(np.max(img2))
         
         return np.mean(vmins), np.mean(vmaxs)
-    
-    def test(self,x):
-        print(x)
         
