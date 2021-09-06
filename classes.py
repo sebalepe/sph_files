@@ -159,18 +159,6 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
         cmap = LinearSegmentedColormap.from_list(name, colors, N=bins)
         return cmap
     
-    def fix_nun(self, img, minimo=10e10):
-        for i in img:
-            for j in i:
-                if j < minimo and not np.isnan(j) and j != -math.inf:
-                    minimo = j
-
-        for i in range(len(img)):
-            for j in range(len(img[i])):
-                if np.isnan(img[i][j]) or img[i][j] == -math.inf:
-                    img[i][j] = minimo         
-        return img
-    
     def fix_img(self, img, n=1.23):
         img1 = np.where(np.isnan(img), n, img)
         img2 = np.where(img1==-math.inf, n, img1)
