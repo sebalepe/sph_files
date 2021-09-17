@@ -8,12 +8,10 @@ from sphviewer.tools import Blend
 import matplotlib.image as mpimg
 from sphviewer.tools import cmaps as cmp
 import cv2
-import numpy as np
 import glob
 import imageio
 import matplotlib.animation as animation
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-import matplotlib.gridspec as gridspec
 import matplotlib.ticker as ticker
 from matplotlib.colors import LinearSegmentedColormap
 import math
@@ -430,4 +428,19 @@ class SnapEvolution: #para leer multiples snaps
             vmaxs.append(np.max(img2))
         
         return np.mean(vmins), np.mean(vmaxs)
+    
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
