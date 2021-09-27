@@ -21,7 +21,7 @@ flags = {
     'flag_stellarage'      : True,
     'flag_EnergySNCold'    : True,
     'flag_artificial'      : True,
-    'flag_speciesKrome'    : True,
+    'flag_speciesKrome'    : False,
     'flag_sn'              : False,
     'flag_bhx'             : False,
     'flag_outputpotential' : False,

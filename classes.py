@@ -8,12 +8,10 @@ from sphviewer.tools import Blend
 import matplotlib.image as mpimg
 from sphviewer.tools import cmaps as cmp
 import cv2
-import numpy as np
 import glob
 import imageio
 import matplotlib.animation as animation
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-import matplotlib.gridspec as gridspec
 import matplotlib.ticker as ticker
 from matplotlib.colors import LinearSegmentedColormap
 import math
@@ -83,23 +81,24 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
         value = np.sum(pos * mass , axis=0)
         return value / sum(mass)
     
-    def local_centroid(self, part, tupla, area, vel=False): #encuentra el centro de masa/velocidad del centro de masa
-        indexs = []                                        #de un grupo local a observar 
-        try:
-            p1,p2,p3 = tupla
-        except:
-            p1,p2 = tupla
-            
-        for i in range(len(self.pos[part])):
-            x,y,z = self.pos[part][i]
-            if abs(x - p1) <= area and abs(y - p2) <= area:
-                indexs.append(i)
-        if not vel:
-            pos = np.array([self.pos[part][i] for i in indexs])
-        if vel:
-            pos = np.array([self.vels[part][i] for i in indexs])
+    def local_centroid(self, part, source, area):
+        x, y, z = source
 
-        mass = np.array([self.mass[part][i] for i in indexs])
+        l_x = self.pos[0][:,0]
+        l_y = self.pos[0][:,1]
+        l_z = self.pos[0][:,2]
+
+        d_x = np.abs(l_x - x)
+        d_y = np.abs(l_y - y)
+        d_z = np.abs(l_z - z)
+
+        dis = d_x ** 2 + d_y ** 2 + d_z ** 2
+        
+        indexs = [i for i in range(len(dis)) if dis[i] <= area]
+        
+        pos = np.array([self.pos[0][i] for i in indexs])
+        mass = np.array([self.mass[0][i] for i in indexs])
+
         value = np.sum(pos * mass , axis=0)
         return value / sum(mass)
     
@@ -108,20 +107,21 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
         x,y,z = self.pos[part][index[0][0]]
         return x,y,z
     
-    def source_id(self, part, pos_tuple): #toma una posicion (x,y) o (x,y,z) y retorna su id
+    def source_id(self, part, source):
         try:
-            x_t,y_t,z_t = pos_tuple
+            x,y,z = source
         except:
-            x_t,y_t = pos_tuple
-        x,y = (0, 0)
-        index = 0
-        for i in range(len(self.pos[part])):
-            x_i, y_i, z_i = self.pos[part][i]
-            if abs(x_i - x_t) <= 0.3 and abs(y_i - y_t) <= 0.3:
-                x,y = (x_i, y_i)
-                index = i
-                break
-        return self.part[part]['ID'][index]
+            x,y = source
+        
+        l_x = self.pos[part][:,0]
+        l_y = self.pos[part][:,1]
+
+        d_x = np.abs(l_x - x)
+        d_y = np.abs(l_y - y)
+
+        dis = d_x ** 2 + d_y ** 2
+        i = np.argmin(dis)
+        return self.part[part]['ID'][i]
     
     ## Funciones de SPH-Viewer
     def quickview(self, **kwargs):
@@ -267,7 +267,7 @@ class SnapEvolution: #para leer multiples snaps
                 self.snaps.append(SnapViewer(self.path + str('%03d'%i) + f'{self.format}'))
                 self.files.append(self.path + str('%03d'%i) + f'{self.format}')
             except:
-                pass
+                print('error while adding files')
         
         print(f'{len(self.snaps)} files added')
     
@@ -430,4 +430,19 @@ class SnapEvolution: #para leer multiples snaps
             vmaxs.append(np.max(img2))
         
         return np.mean(vmins), np.mean(vmaxs)
+    
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
