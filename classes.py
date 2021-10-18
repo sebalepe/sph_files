@@ -206,53 +206,7 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
         for i in range(len(self.pos)):
             self.vfield_plot(axs[i],self.pos[i], self.mass[i], self.vels[i], extent, i, x,y,z, v_cm)
         plt.show()
-    
-    def h2_fraction(self, part, extent=[-15,15,-15,15], r='infinity', zoom=1, focus=None, **kwargs): 
-                                                                                         #retorna imagen de fraccion h2
-        if focus is None:
-            x,y,z=self.centroid(self.pos)
-        else:
-            x,y,z = focus
-        try:
-            krome = self.part[part]['speciesKrome']
-            h2 = np.array([krome[i][4] for i in range(len(krome))])
-            mt=sum(self.mass[part])
-            qv_h2 = QuickView(pos=self.pos[0], mass=h2/mt, r=r, x=x,y=y,z=z,
-                  extent=extent, plot=False, logscale=False, **kwargs)
-            return qv_h2.get_image()
-        except:
-            print('Part Type error')
-        
-    def get_abundance_id(self): #imprime los elementos y sus indices de "element abundance"
-        elements = ['3He', '12C', '24Mg', '16O', '56Fe', '28Si', 'H','14N', '20Ne', '32S', '40Ca', '62Zn']
-        for i in range(len(elements)):
-            print(f'{elements[i]}:{i}')
-                  
-    def elm_abundance(self, elm, part, extent=[-15,15,-15,15], r='infinity', focus=None, **kwargs): 
-                                                                #retorna la imagen de element abundance
-        if focus is None:
-            x,y,z = self.centroid(self.pos)
-        else:
-            x,y,z = focus
-        try:
-            abundance = self.part[part]['ElementAbundance']
-            mass_o = np.array([abundance[i][elm] for i in range(len(abundance))])
-            mass_h = np.array([abundance[i][6] for i in range(len(abundance))])
-            qv_o = QuickView(pos=self.pos[part], mass=mass_o, r=r, x=x,y=y,z=z, 
-                             extent=extent, logscale=False, plot=False, **kwargs)
-            qv_h = QuickView(pos=self.pos[part], mass=mass_h, r=r, x=x,y=y,z=z, 
-                             extent=extent, logscale=False, plot=False, **kwargs)
-            qv_n = QuickView(pos=self.pos[part], mass=self.mass[part], r=r, x=x,y=y,z=z, 
-                             extent=extent, logscale=False, plot=False, **kwargs) 
-            img_h = qv_h.get_image()
-            img_n = qv_n.get_image()
-            img_o = qv_o.get_image()
-            img_oxab = 12 + (np.log10(img_o / 16) - np.log10(img_h))
-            return img_oxab
-        except:
-            print('Part Type error')
-        
-            
+
             
 class SnapEvolution: #para leer multiples snaps
     
