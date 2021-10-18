@@ -79,14 +79,15 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
         pos = np.concatenate(pos, axis=0)
         mass = np.concatenate(mass, axis=0)
         value = np.sum(pos * mass , axis=0)
-        return value / sum(mass)
+        x,y,z = value / sum(mass)
+        return x, -y, z
     
     def local_centroid(self, part, source, area):
         x, y, z = source
 
-        l_x = self.pos[0][:,0]
-        l_y = self.pos[0][:,1]
-        l_z = self.pos[0][:,2]
+        l_x = self.pos[part][:,0]
+        l_y = self.pos[part][:,1]
+        l_z = self.pos[part][:,2]
 
         d_x = np.abs(l_x - x)
         d_y = np.abs(l_y - y)
@@ -100,12 +101,14 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
         mass = np.array([self.mass[0][i] for i in indexs])
 
         value = np.sum(pos * mass , axis=0)
-        return value / sum(mass)
+        x,y,z = value / sum(mass)
+        return x, -y, z
+        #return value / sum(mass)
     
     def pos_id(self, part, _id): #toma el id de una particula y retorna su posicion
         index = np.where(self.part[part]['ID'] == _id)
         x,y,z = self.pos[part][index[0][0]]
-        return x,y,z
+        return x, -y, z
     
     def source_id(self, part, source):
         try:
