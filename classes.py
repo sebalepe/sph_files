@@ -162,7 +162,7 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
         cmap = LinearSegmentedColormap.from_list(name, colors, N=bins)
         return cmap
     
-    def fix_img(img, n=1.23):
+    def fix_img(self, img, n=1.23):
         img1 = np.where(np.isnan(img), n, img)
         img2 = np.where(img1==-math.inf, n, img1)
         img3 = np.where(img2==n, np.amin(img2), img2)
@@ -170,7 +170,7 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
         img4 = np.where(img3==math.inf, n, img3)
         img5 = np.where(img4==n, np.amax(img4), img4)
     
-    return img5
+        return img5
     
     def vfield_plot(self, ax,pos,mass,vel, extent, u, x,y,z, v_cm): #genera plot de streamlines de velocidad
         qv = QuickView(pos, r='infinity', mass=mass, x=x, y=y, z=z, extent=extent, plot=False, logscale=False)
