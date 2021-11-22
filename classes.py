@@ -1,4 +1,3 @@
-from read_binary_snap import read
 from sphviewer.tools import QuickView
 import sphviewer as sph
 import matplotlib.pyplot as plt
@@ -16,14 +15,20 @@ import matplotlib.ticker as ticker
 from matplotlib.colors import LinearSegmentedColormap
 import math
 
+import read_binary_snap as rd
+
+from importlib import reload
+reload(rd)
+
 class SnapViewer: #guarda toda la informacion y facilita algunos elementos
     
-    def __init__(self, path='', empty=False):
+    def __init__(self, path='', empty=False, flags=False):
         self.path = path
         self.empty = empty
         self.keys = ''
         self.header = None
         self.info = None
+        self.flags=flags
         self.part = [] #tiene todos los datos con sus respectivos diccionarios
         self.pos = [] #todas las posiciones (por facilidad)
         self.mass = [] #todas las masas (por facilidad)
@@ -33,7 +38,11 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
         
     def init(self): #guarda todos los datos tomando un path a un archivo en binario
         if not self.empty:
-            self.header, data, self.info = read(self.path)
+            if not self.flags:
+                self.header, data, self.info = rd.read(self.path)
+            else:
+                self.header, data, self.info = rd.read(self.path, flags=self.flags)
+                
             header_keys = f'Header: {list(self.header.keys())}\n\n'
             data_keys = list(data.keys())
             ptyp=[data[i] for i in data_keys]
@@ -214,18 +223,38 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
             
 class SnapEvolution: #para leer multiples snaps
     
-    def __init__(self, path, quantity, format_=''):
+    def __init__(self, path, quantity, format_='', flags=False): #añadir flags
         self.path = path
         self.format = format_
         self.quantity = quantity
         self.snaps = []
         self.files = []
+        self.flags = flags
+        if not flags:
+            self.flags = {   
+                        'flag_rho'             : True,
+                        'flag_sfr'             : True,
+                        'flag_hsml'            : True,
+                        'flag_metals'          : True,
+                        'flag_energy'          : True,
+                        'flag_cooling'         : True,
+                        'flag_feedback'        : True,
+                        'flag_EnergySN'        : True,
+                        'flag_stellarage'      : True,
+                        'flag_EnergySNCold'    : True,
+                        'flag_artificial'      : True,
+                        'flag_speciesKrome'    : True,
+                        'flag_sn'              : False,
+                        'flag_bhx'             : False,
+                        'flag_outputpotential' : False,
+                    }
         self.init()
     
     def init(self): #guarda todos los snaps
         for i in range(self.quantity):
             try:
-                self.snaps.append(SnapViewer(self.path + str('%03d'%i) + f'{self.format}'))
+                path = self.path + str('%03d'%i) + f'{self.format}'
+                self.snaps.append(SnapViewer(path, flags=self.flags))
                 self.files.append(self.path + str('%03d'%i) + f'{self.format}')
             except:
                 print('error while adding files')
