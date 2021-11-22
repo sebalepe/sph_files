@@ -364,11 +364,13 @@ class SnapEvolution: #para leer multiples snaps
     def end_img(self): #cierro figura
         plt.show()
         
-    def show_img(self, img, extent, vmin, vmax, cmap, label, l_color='white' ,hori=True, save=False, path=''):
+    def show_img(self, img, extent, vmin, vmax, cmap, label, l_color='white' ,hori=True, save=False, path='', xlabel='' , ylabel='' ):
         # muestra una figura la colorbar dentro
         ax0 = plt.subplot(self.gs[0, 0])
         cm = plt.cm.get_cmap(cmap)
         plt.imshow(img, vmin=vmin, vmax=vmax, extent=extent, cmap=cm)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
         
         if hori:
             cbaxes = inset_axes(ax0, width="40%", height="3%", loc=9) 
