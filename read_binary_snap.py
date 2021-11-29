@@ -19,12 +19,12 @@ flags = {
     'flag_feedback'        : True,
     'flag_EnergySN'        : True,
     'flag_stellarage'      : True,
-    'flag_EnergySNCold'    : True,
+    'flag_EnergySNCold'    : False,
     'flag_artificial'      : True,
-    'flag_speciesKrome'    : True,
+    'flag_speciesKrome'    : False,
     'flag_sn'              : False,
     'flag_bhx'             : False,
-    'flag_outputpotential' : False,
+    'flag_outputpotential' : True,
 }
 
 
