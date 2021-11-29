@@ -246,7 +246,7 @@ class SnapEvolution: #para leer multiples snaps
                         'flag_speciesKrome'    : False,
                         'flag_sn'              : False,
                         'flag_bhx'             : False,
-                        'flag_outputpotential' : False,
+                        'flag_outputpotential' : True,
                     }
         self.init()
     
