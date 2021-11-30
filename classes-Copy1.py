@@ -1,3 +1,4 @@
+from read_binary_snap import read
 from sphviewer.tools import QuickView
 import sphviewer as sph
 import matplotlib.pyplot as plt
@@ -14,22 +15,15 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import matplotlib.ticker as ticker
 from matplotlib.colors import LinearSegmentedColormap
 import math
-from sphviewer.tools import hsv_tools
-
-import read_binary_snap as rd
-
-from importlib import reload
-reload(rd)
 
 class SnapViewer: #guarda toda la informacion y facilita algunos elementos
     
-    def __init__(self, path='', empty=False, flags=False):
+    def __init__(self, path='', empty=False):
         self.path = path
         self.empty = empty
         self.keys = ''
         self.header = None
         self.info = None
-        self.flags = flags
         self.part = [] #tiene todos los datos con sus respectivos diccionarios
         self.pos = [] #todas las posiciones (por facilidad)
         self.mass = [] #todas las masas (por facilidad)
@@ -39,11 +33,7 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
         
     def init(self): #guarda todos los datos tomando un path a un archivo en binario
         if not self.empty:
-            if not self.flags:
-                self.header, data, self.info = rd.read(self.path)
-            else:
-                self.header, data, self.info = rd.read(self.path, flags=self.flags)
-                
+            self.header, data, self.info = read(self.path)
             header_keys = f'Header: {list(self.header.keys())}\n\n'
             data_keys = list(data.keys())
             ptyp=[data[i] for i in data_keys]
@@ -94,16 +84,26 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
     
     def local_centroid(self, part, source, area):
         x, y, z = source
-        l_x, l_y, l_z  = self.pos[part][:,0], self.pos[part][:,1], self.pos[part][:,2]
-        d_x, d_y, d_z = np.abs(l_x - x), np.abs(l_y - y), np.abs(l_z - z)
+
+        l_x = self.pos[part][:,0]
+        l_y = self.pos[part][:,1]
+        l_z = self.pos[part][:,2]
+
+        d_x = np.abs(l_x - x)
+        d_y = np.abs(l_y - y)
+        d_z = np.abs(l_z - z)
+
         dis = d_x ** 2 + d_y ** 2 + d_z ** 2
-        indexs = [i for i in range(len(dis)) if dis[i] <= area] 
+        
+        indexs = [i for i in range(len(dis)) if dis[i] <= area]
+        
         pos = np.array([self.pos[0][i] for i in indexs])
         mass = np.array([self.mass[0][i] for i in indexs])
+
         value = np.sum(pos * mass , axis=0)
         x,y,z = value / sum(mass)
         return x, -y, z
-
+    
     def pos_id(self, part, _id): #toma el id de una particula y retorna su posicion
         index = np.where(self.part[part]['ID'] == _id)
         x,y,z = self.pos[part][index[0][0]]
@@ -114,10 +114,13 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
             x,y,z = source
         except:
             x,y = source
+        
         l_x = self.pos[part][:,0]
         l_y = self.pos[part][:,1]
+
         d_x = np.abs(l_x - x)
         d_y = np.abs(l_y - y)
+
         dis = d_x ** 2 + d_y ** 2
         i = np.argmin(dis)
         return self.part[part]['ID'][i]
@@ -127,7 +130,7 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
         qv = QuickView(**kwargs)
         return qv
     
-    def particles(self, pos, mass):
+    def particle(self, pos, mass):
         particles = sph.Particles(pos, mass)
         return particles
     
@@ -142,10 +145,30 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
     def blend(self, img1, img2):
         blend = Blend.Blend(img1, img2)
         return blend
-
-    ## Plot Functions   
-    def vfield_plot(self, ax,pos,mass,vel, extent, u, x, y, z, v_cm): #genera plot de streamlines de velocidad
-        qv = QuickView(pos, r='infinity', mass=mass, x=x,y=y,z=z, extent=extent, plot=False, logscale=False)
+    
+    
+    ## Plot Functions
+    
+    def cmap_from_image(self, path='', reverse=False):
+        img = imread(path)
+        colors_from_img = img[:, 0, :]
+        if reverse:
+            colors_from_img = colors_from_img[::-1]
+        my_cmap = LinearSegmentedColormap.from_list('my_cmap', colors_from_img, N=280)
+        return my_cmap
+    
+    def cmap_from_list(self, colors, bins=1000 ,name='my_cmap'):
+        cmap = LinearSegmentedColormap.from_list(name, colors, N=bins)
+        return cmap
+    
+    def fix_img(self, img, n=1.23):
+        img1 = np.where(np.isnan(img), n, img)
+        img2 = np.where(img1==-math.inf, n, img1)
+        img3 = np.where(img2==n, np.amin(img2), img2)
+        return img3
+    
+    def vfield_plot(self, ax,pos,mass,vel, extent, u, x,y,z, v_cm): #genera plot de streamlines de velocidad
+        qv = QuickView(pos, r='infinity', mass=mass, x=x, y=y, z=z, extent=extent, plot=False, logscale=False)
         hsml = qv.get_hsml()
         density_field = qv.get_image()
         vfield = []
@@ -182,25 +205,22 @@ class SnapViewer: #guarda toda la informacion y facilita algunos elementos
         for i in range(len(self.pos)):
             self.vfield_plot(axs[i],self.pos[i], self.mass[i], self.vels[i], extent, i, x,y,z, v_cm)
         plt.show()
-
+            
             
 class SnapEvolution: #para leer multiples snaps
     
-    def __init__(self, path, quantity, format_='', flags=False):
+    def __init__(self, path, quantity, format_=''):
         self.path = path
         self.format = format_
         self.quantity = quantity
         self.snaps = []
         self.files = []
-        self.flags = flags
-        
         self.init()
     
     def init(self): #guarda todos los snaps
         for i in range(self.quantity):
             try:
-                path = self.path + str('%03d'%i) + f'{self.format}'
-                self.snaps.append(SnapViewer(path, flags=self.flags))
+                self.snaps.append(SnapViewer(self.path + str('%03d'%i) + f'{self.format}'))
                 self.files.append(self.path + str('%03d'%i) + f'{self.format}')
             except:
                 print('error while adding files')
@@ -209,7 +229,7 @@ class SnapEvolution: #para leer multiples snaps
     
     def add_file(self, path):
         try:
-            self.snaps.append(SnapViewer(path, flags=self.flags))
+            self.snaps.append(SnapViewer(path))
             self.files.append(path)
             print('File added')
         except:
@@ -223,6 +243,30 @@ class SnapEvolution: #para leer multiples snaps
     
     def get_keys(self):
         self.snaps[0].get_keys()
+    
+    def save_gif(self, path1, path2): #une las imagenes de una carpeta (ordenados) en forma de gif
+        img_array = []
+        for filename in glob.glob(f'{path1}*.png'):
+            img = cv2.imread(filename)
+            height, width, layers = img.shape
+            size = (width,height)
+            img_array.append(img)
+        with imageio.get_writer(f"{path2}.gif", mode="I") as writer:
+            for idx, frame in enumerate(img_array):
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                writer.append_data(rgb_frame)
+                
+    def save_video(self, path1, path2, fps=15): #une las imagenes de una carpeta (ordenados) en forma de video
+        img_array = []
+        for filename in glob.glob(f'{path1}*.png'):
+            img = cv2.imread(filename)
+            height, width, layers = img.shape
+            size = (width,height)
+            img_array.append(img)
+        out = cv2.VideoWriter(f'{path2}.mp4',cv2.VideoWriter_fourcc(*'DIVX'), fps, size)
+        for i in range(len(img_array)):
+            out.write(img_array[i])
+        out.release()
     
     def animate(self, iter): #funcion para animar streemlines de velocidad
         X = np.linspace(self.extent[0], self.extent[1], 500)
@@ -278,87 +322,21 @@ class SnapEvolution: #para leer multiples snaps
         self.ax.imshow(np.log10(density_field), origin='lower', extent=extent, cmap='bone')
         anim =   animation.FuncAnimation(fig, self.animate, frames=frames, interval=50, blit=False, repeat=False)
         anim.save(f'{path}', writer='imagemagick', fps=60)
-            
-    def vmean(self, imgs, quantity):
-        vmins = []
-        vmaxs = []
-        for i in range(quantity):
-            img = imgs[i]
-            vmins.append(np.min(img))
-            img2 = imgs[::-1][i]
-            vmaxs.append(np.max(img2))
-        
-        return np.mean(vmins), np.mean(vmaxs)
     
-        
-class Functions:
-    
-    def __init__(self):
-        self.flags = {   
-                    'flag_rho'             : True,
-                    'flag_sfr'             : True,
-                    'flag_hsml'            : True,
-                    'flag_metals'          : True,
-                    'flag_energy'          : True,
-                    'flag_cooling'         : True,
-                    'flag_feedback'        : True,
-                    'flag_EnergySN'        : True,
-                    'flag_stellarage'      : True,
-                    'flag_EnergySNCold'    : True,
-                    'flag_artificial'      : True,
-                    'flag_speciesKrome'    : True,
-                    'flag_sn'              : False,
-                    'flag_bhx'             : False,
-                    'flag_outputpotential' : False,
-                    }
- 
-    def show_flags(self):
-        for key in self.flags.keys():
-            print(f'{key}: {self.flags[key]}')
-            
-    def init_image(self): #inicio figura (para no abrir 200)
+    def init_img(self): #inicio figura (para no abrir 200)
         self.fig = plt.figure(figsize=(8,8))
         self.gs = gridspec.GridSpec(1, 1)
-    
-    def end_image(self): #cierro figura
+        
+    def end_img(self): #cierro figura
         plt.show()
-            
-    def all_functions(self):
-        functions = [
-        'show_flags()',
-        'init_image()',
-        'end_image()',
-        """show_image(img, extent=None, vmin=None, vmax=None, cmap='magma', label='', l_color='white',
-          hori=True, save=False, path='', xlabel='', ylabel='', show_cbar=True, dpi=100)""",
-        """hsv_image(imgh=10, imgv=10, extent=None, vminh=None, vmaxh=None, vminv=None, vmaxv=None,
-          rgbmin=0, rgbmax=1, xlabel='', ylabel='', xlabel_hsv='', ylabel_hsv='', l_color='w', 
-          path='test', save=False, dpi=100)""",
-        'save_gif(path1, path2)',
-        'save_video(path1, path2, fps=15)',
-        'transition(path_img1, path_img2, path_save, frames, index)',
-        'cmap_from_image(path='', reverse=False):',
-        "cmap_from_list(colors, bins=1000 ,name='my_cmap')",
-        'fix_img(img, n=1.23)'
-        ]
-        [print(i+'\n') for i in functions]
         
-    def show_image(self, img, extent=None, vmin=None, vmax=None, cmap='magma', label='', l_color='white',
-                   hori=True, save=False, path='', xlabel='', ylabel='', show_cbar=True, dpi=100):
-        
-        if(vmin == None): vmin = np.min(img)
-        if(vmax == None): vmax = np.max(img)
-        
+    def show_img(self, img, extent, vmin, vmax, cmap, label, l_color='white' ,hori=True, save=False, path=''):
         # muestra una figura la colorbar dentro
         ax0 = plt.subplot(self.gs[0, 0])
         cm = plt.cm.get_cmap(cmap)
-        if extent is None:
-            plt.imshow(img, vmin=vmin, vmax=vmax, extent=extent, cmap=cm)
-        else:
-            plt.imshow(img, vmin=vmin, vmax=vmax, cmap=cm)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
+        plt.imshow(img, vmin=vmin, vmax=vmax, extent=extent, cmap=cm)
         
-        if hori and show_cbar:
+        if hori:
             cbaxes = inset_axes(ax0, width="40%", height="3%", loc=9) 
             cbar = plt.colorbar(cax=cbaxes, ticks=[0.,1], orientation='horizontal')
             cbar.set_label(label, color='white')
@@ -367,7 +345,7 @@ class Functions:
             cbar.set_ticks(lines1)
             cbar.ax.set_xticklabels(lines2, color=l_color, fontsize=7)
             
-        if not hori and show_cbar:
+        if not hori:
             cbaxes = inset_axes(ax0, width="3%", height="40%", loc=6)
             cbar = plt.colorbar(cax=cbaxes, ticks=[0.,1], orientation='vertical')
             cbar.set_label(label, color=l_color)
@@ -377,81 +355,16 @@ class Functions:
             cbar.ax.set_yticklabels(lines2, color=l_color, fontsize=7)
         
         if save:
-            plt.savefig(f'{path}.png', dpi=dpi)
-
-    def hsv_image(self, imgh=10, imgv=10, extent=None, vminh=None, vmaxh=None, vminv=None, vmaxv=None,
-                  rgbmin=0, rgbmax=1, xlabel='', ylabel='', xlabel_hsv='', ylabel_hsv='', l_color='w', 
-                  path='test', save=False, dpi=100):
-        
-        if(vminh == None): vminh = np.min(imgh)
-        if(vmaxh == None): vmaxh = np.max(imgh)
-        if(vminv == None): vminv = np.min(imgv)
-        if(vmaxv == None): vmaxv = np.max(imgv)
-    
-        def hsv_colorbar(axs, minh=0, maxh=1, minv=0, maxv=1,
-                     pos=(0.8,0.8,0.15,0.15), color='w', hmin=0, hmax=1):
-
-            cbh = np.tile(np.linspace(minh,maxh,500),(500,1)).astype(np.float32)
-            cbv = np.tile(np.linspace(minv,maxv,500).reshape(-1,1),(1,500)).astype(np.float32)
-            rgb = hsv_tools.image_from_hsv(h=cbh, v=cbv, img_hmin=minh, img_hmax=maxh, img_vmin=minv, img_vmax=maxv,
-                                          hmin=hmin, hmax=hmax)
-
-            axs = axs.inset_axes(pos)
-            axs.imshow(rgb, origin='lower', extent=(minh,maxh,minv,maxv), aspect='auto')
-
-            #axs.spines[:].set_color(color) #me tira error ):
-            [axs.spines[key].set_color(color) for key in axs.spines.keys()]
-            axs.tick_params(axis='x', colors=color)
-            axs.tick_params(axis='y', colors=color)
-
-            return axs
-
-        ax0 = plt.subplot(self.gs[0, 0])
-        rgb = hsv_tools.image_from_hsv(h=imgh, v=imgv, img_hmin=vminh, img_hmax=vmaxh, img_vmin=vminv, img_vmax=vmaxv,
-                                   hmin=rgbmin, hmax=rgbmax)
-        if extent is None:
-            ax0.imshow(rgb)
-        else:
-            ax0.imshow(rgb, extent=extent)
-        cb = hsv_colorbar(ax0, minh=vminh, maxh=vmaxh, minv=vminv, maxv=vmaxv, hmin=rgbmin, hmax=rgbmax, color=l_color)
-        cb.set_xlabel(xlabel_hsv, color=l_color)
-        cb.set_ylabel(ylabel_hsv, color=l_color)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        
-        if save:
-            plt.savefig(f'{path}.png', dpi=dpi)
-
-    def save_gif(self, path1, path2): #une las imagenes de una carpeta (ordenados) en forma de gif
-        img_array = []
-        for filename in glob.glob(f'{path1}*.png'):
-            img = cv2.imread(filename)
-            height, width, layers = img.shape
-            size = (width,height)
-            img_array.append(img)
-        with imageio.get_writer(f"{path2}.gif", mode="I") as writer:
-            for idx, frame in enumerate(img_array):
-                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                writer.append_data(rgb_frame)
-
-    def save_video(self, path1, path2, fps=15): #une las imagenes de una carpeta (ordenados) en forma de video
-        img_array = []
-        for filename in glob.glob(f'{path1}*.png'):
-            img = cv2.imread(filename)
-            height, width, layers = img.shape
-            size = (width,height)
-            img_array.append(img)
-        out = cv2.VideoWriter(f'{path2}.mp4',cv2.VideoWriter_fourcc(*'DIVX'), fps, size)
-        for i in range(len(img_array)):
-            out.write(img_array[i])
-        out.release()
-
+            plt.savefig(f'{path}.png', dpi=100)
+            
     def transition(self, path_img1, path_img2, path_save, frames, index):
 
-        imgcv1 = cv2.imread(path_img1) #abro las imagenes con opencv
+        imgcv1 = cv2.imread(path_img1)#abro las imagenes con opencv
         imgcv2 = cv2.imread(path_img2)
-        rgb1 = cv2.cvtColor(imgcv1, cv2.COLOR_BGR2RGB) #arreglo el color
+
+        rgb1 = cv2.cvtColor(imgcv1, cv2.COLOR_BGR2RGB)#arreglo el color
         rgb2 = cv2.cvtColor(imgcv2, cv2.COLOR_BGR2RGB)
+
         x,y,z = imgcv1.shape
         value = x/frames 
         for i in range(frames):
@@ -461,37 +374,16 @@ class Functions:
             rgb2[0:int(max_), 0:x] = capa
             u = index + i
             plt.imsave(f'{path_save}_' + str('%03d.png'%u), rgb2, dpi = 100)
-
-    def cmap_from_image(self, path='', reverse=False):
-        img = imread(path)
-        colors_from_img = img[:, 0, :]
-        if reverse:
-            colors_from_img = colors_from_img[::-1]
-        my_cmap = LinearSegmentedColormap.from_list('my_cmap', colors_from_img, N=280)
-        return my_cmap
-
-    def cmap_from_list(self, colors, bins=1000 ,name='my_cmap'):
-        cmap = LinearSegmentedColormap.from_list(name, colors, N=bins)
-        return cmap
-
-    def fix_img(self, img, n=1.23):
-        img1 = np.where(np.isnan(img), n, img)
-        img2 = np.where(img1==-math.inf, n, img1)
-        img3 = np.where(img2==n, np.amin(img2), img2)
-        img4 = np.where(img3==math.inf, n, img3)
-        img5 = np.where(img4==n, np.amax(img4), img4)
-        return img5
+            
+    def vmean(self, imgs, quantity):
+        vmins = []
+        vmaxs = []
+        for i in range(quantity):
+            img = imgs[i]
+            vmins.append(np.min(img))
+            
+            img2 = imgs[::-1][i]
+            vmaxs.append(np.max(img2))
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        return np.mean(vmins), np.mean(vmaxs)
+  
