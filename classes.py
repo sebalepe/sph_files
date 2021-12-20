@@ -435,9 +435,9 @@ class Functions:
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 writer.append_data(rgb_frame)
 
-    def save_video(self, path1, path2, fps=15): #une las imagenes de una carpeta (ordenados) en forma de video
+    def save_video(self, path1, path2, fps=15, end='png'): #une las imagenes de una carpeta (ordenados) en forma de video
         img_array = []
-        for filename in glob.glob(f'{path1}*.png'):
+        for filename in glob.glob(f'{path1}*.{end}'):
             img = cv2.imread(filename)
             height, width, layers = img.shape
             size = (width,height)
